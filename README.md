@@ -27,4 +27,8 @@ Contributing
 License
 - No license specified. Contact the author if you need one.
 
+<<<<<<< HEAD
 Enjoy!
+=======
+Enjoy!
+>>>>>>> 4618bc9181802bea94b07f7026fced718352ef54
