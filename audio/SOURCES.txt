@@ -1,0 +1,22 @@
+Suggested sources for free SFX (verify license before use):
+
+1) Freesound.org
+   - Large community library. Many assets under Creative Commons (various types). Search for "casino buzzer", "applause short", "crowd cheer", "drum hit".
+   - Use the preview, then click "Download" (account required for some files).
+
+2) Zapsplat.com
+   - Free account gives access to many short SFX. Good for UI clicks, stings, applause.
+
+3) Pixabay (Audio)
+   - Public-domain / free-to-use music and SFX.
+
+4) Orange Free Sounds, FreeSoundEffects.com
+   - Smaller collections but often convenient direct downloads.
+
+Suggested search queries:
+- "wheel tick", "mechanical tick", "wheel spin", "buzzer bust", "applause short", "crowd cheer short", "drum sting", "button click"
+
+Notes:
+- Prefer short MP3/WAV files (50KB–500KB).
+- Keep filenames exactly as expected by the app: spin.mp3, bust.mp3, mega.mp3, applause.mp3, tieStart.mp3, tieWin.mp3, bonus.mp3, click.mp3, tick.mp3
+- If a source requires attribution, include a short credits file in `audio/CREDITS.txt` (artist, license, link).
