@@ -12,7 +12,7 @@ This script performs simple downloads with `Invoke-WebRequest`. It does not atte
 #>
 
 $assets = @{
-    "background-music.mp3" = "PUT_DIRECT_URL_HERE"
+    "background-music.mp3" = "https://www.myinstants.com/en/instant/the-price-is-right-come-on-down-79806/?utm_source=copy&utm_medium=share"
 }
 
 Write-Host "Downloading SFX to:" $PSScriptRoot -ForegroundColor Cyan
