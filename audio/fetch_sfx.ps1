@@ -12,15 +12,7 @@ This script performs simple downloads with `Invoke-WebRequest`. It does not atte
 #>
 
 $assets = @{
-    "spin.mp3"      = "PUT_DIRECT_URL_HERE"
-    "bust.mp3"      = "PUT_DIRECT_URL_HERE"
-    "mega.mp3"      = "PUT_DIRECT_URL_HERE"
-    "applause.mp3"  = "PUT_DIRECT_URL_HERE"
-    "tieStart.mp3"  = "PUT_DIRECT_URL_HERE"
-    "tieWin.mp3"    = "PUT_DIRECT_URL_HERE"
-    "bonus.mp3"     = "PUT_DIRECT_URL_HERE"
-    "click.mp3"     = "PUT_DIRECT_URL_HERE"
-    "tick.mp3"      = "PUT_DIRECT_URL_HERE"
+    "background-music.mp3" = "PUT_DIRECT_URL_HERE"
 }
 
 Write-Host "Downloading SFX to:" $PSScriptRoot -ForegroundColor Cyan

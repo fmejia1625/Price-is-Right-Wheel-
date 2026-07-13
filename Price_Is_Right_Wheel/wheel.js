@@ -41,64 +41,31 @@ let inTieBreak = false;
 let tieIndices = []; // indices of teams currently in tiebreak
 let tieBreakValues = {}; // map teamIndex -> spin value during tiebreak
 
-// Audio manager: attempts to load audio files from `audio/` and falls back to WebAudio beeps
-const audioFiles = {
-    spin: 'audio/spin.mp3',
-    bust: 'audio/bust.mp3',
-    mega: 'audio/mega.mp3',
-    applause: 'audio/applause.mp3',
-    tieStart: 'audio/tieStart.mp3',
-    tieWin: 'audio/tieWin.mp3',
-    bonus: 'audio/bonus.mp3',
-    click: 'audio/click.mp3'
-};
-const sfx = {};
-let audioCtx = null;
+// Background music: light looped track
+const backgroundMusic = new Audio('audio/background-music.mp3');
+backgroundMusic.loop = true;
+backgroundMusic.volume = 0.18;
+let musicStarted = false;
+
 function initAudio() {
     try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        backgroundMusic.load();
     } catch (e) {
-        audioCtx = null;
+        // ignore
     }
-    Object.keys(audioFiles).forEach(k => {
-        try {
-            const a = new Audio(audioFiles[k]);
-            a.preload = 'auto';
-            sfx[k] = a;
-        } catch (e) {
-            // ignore
-        }
-    });
 }
 
-function playSfx(name) {
-    const a = sfx[name];
-    if (a) {
-        a.currentTime = 0;
-        a.play().catch(() => {});
-        return;
-    }
-    // fallback to a short beep using WebAudio
-    if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
-        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audioCtx = null; }
-    }
-    if (!audioCtx) return;
-    const now = audioCtx.currentTime;
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = 'sine';
-    const freqMap = { spin: 300, bust: 200, mega: 880, applause: 600, tieStart: 420, tieWin: 780, bonus: 520, click: 1200 };
-    o.frequency.value = freqMap[name] || 440;
-    g.gain.value = 0.0001;
-    o.connect(g);
-    g.connect(audioCtx.destination);
-    g.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-    o.start(now);
-    o.stop(now + 0.18);
+function startBackgroundMusic() {
+    if (musicStarted) return;
+    musicStarted = true;
+    backgroundMusic.play().catch(() => {});
 }
 
-// initialize audio preloads (actual playback may still require a user gesture)
+function playSfx() {
+    // Sound effects are disabled; only background music remains.
+}
+
+// initialize audio setup
 initAudio();
 
 let spinStartTravel = 0;
@@ -470,7 +437,11 @@ canvas.addEventListener("mouseup", (e) => {
     spinPower = Math.min(Math.abs(dragStart - e.clientY), 400);
 });
 
-document.getElementById("spinBtn").addEventListener("click", spin);
+const spinBtn = document.getElementById("spinBtn");
+if (spinBtn) {
+    spinBtn.addEventListener("click", startBackgroundMusic);
+    spinBtn.addEventListener("click", spin);
+}
 
 // Decision control helper
 function setDecisionVisible(show) {
@@ -483,7 +454,6 @@ function setDecisionVisible(show) {
 // Decision button handlers
 if (document.getElementById("stayBtn")) {
     document.getElementById("stayBtn").addEventListener("click", () => {
-        playSfx('click');
         const team = teams[currentTeamIndex];
         team.total = roundTotal;
         updateTracker();
@@ -496,24 +466,12 @@ if (document.getElementById("stayBtn")) {
 }
 if (document.getElementById("spinAgainBtn")) {
     document.getElementById("spinAgainBtn").addEventListener("click", () => {
-        playSfx('click');
         setDecisionVisible(false);
         spinCount = 2;
         document.getElementById("spinNumber").textContent = "2";
         document.getElementById("result").textContent = `${teams[currentTeamIndex].name}, spin again!`;
         document.getElementById("result").style.color = "#ffd43b";
     });
-}
-
-function playTick() {
-    const peg = Math.floor(((angle % (Math.PI * 2)) / (Math.PI * 2)) * 100);
-
-    if (peg !== lastPeg) {
-        const sound = document.getElementById("tickSound");
-        sound.currentTime = 0;
-        sound.play().catch(() => {});
-        lastPeg = peg;
-    }
 }
 
 function spin() {
@@ -523,9 +481,8 @@ function spin() {
     const team = teams[currentTeamIndex];
     document.getElementById("currentPlayer").textContent = team.name;
 
-    // Play click and spin-start SFX (will silently fail if not allowed yet)
-    playSfx('click');
-    playSfx('spin');
+    // Background music starts on first user interaction
+    startBackgroundMusic();
 
     // always proceed; spinCount is managed by finishSpin
 
@@ -540,7 +497,6 @@ function spin() {
 function animate() {
     angle += velocity;
     velocity *= 0.992;
-    playTick();
     // accumulate absolute angular travel
     spinTravel += Math.abs(velocity);
     drawWheel();
