@@ -13,6 +13,33 @@
     --danger: #ff4d4d;
 }
 
+/* Round mute button pinned to the bottom-left corner, above all other content */
+.mute-btn {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    z-index: 50; /* stay above the app shell */
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(180deg, rgba(20, 40, 70, 0.9), rgba(7, 17, 31, 0.9));
+    color: #ffd54f;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Slight lift on hover to signal interactivity */
+.mute-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.4);
+}
+
 body {
     margin: 0;
     min-height: 100vh;

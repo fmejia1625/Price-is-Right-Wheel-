@@ -41,12 +41,20 @@ let inTieBreak = false;
 let tieIndices = []; // indices of teams currently in tiebreak
 let tieBreakValues = {}; // map teamIndex -> spin value during tiebreak
 
-// Background music: light looped track
-const backgroundMusic = new Audio('audio/background-music.mp3');
+// Background music: light looped track that plays for the whole session
+const backgroundMusic = new Audio('audio/background_music.mp3');
 backgroundMusic.loop = true;
 backgroundMusic.volume = 0.18;
-let musicStarted = false;
+let musicPlaying = false; // true only once playback is actually underway (not just attempted)
+let musicMuted = false; // tracks the mute button state
 
+// Sound effects: wheel spin whir and the "bust" fail sound
+const spinSfx = new Audio('audio/wheel_spin.mp3');
+spinSfx.volume = 0.5;
+const failSfx = new Audio('audio/fail.mp3');
+failSfx.volume = 0.5;
+
+// Preload the background track so it's ready to play instantly on the first spin
 function initAudio() {
     try {
         backgroundMusic.load();
@@ -55,15 +63,65 @@ function initAudio() {
     }
 }
 
+// Attempts to start the background music; retries are safe since play() on an
+// already-playing track is a harmless no-op. Tracks success via musicPlaying.
 function startBackgroundMusic() {
-    if (musicStarted) return;
-    musicStarted = true;
-    backgroundMusic.play().catch(() => {});
+    if (musicMuted) return;
+    backgroundMusic.play()
+        .then(() => { musicPlaying = true; })
+        .catch(() => { musicPlaying = false; });
 }
 
-function playSfx() {
-    // Sound effects are disabled; only background music remains.
+// Try to autoplay as soon as the page loads. Most browsers block unsolicited audio
+// until the user has interacted with the page, so if this gets rejected we fall back
+// to starting the music on the very first click/keypress anywhere on the page.
+startBackgroundMusic();
+const beginOnFirstInteraction = () => {
+    if (musicPlaying) {
+        document.removeEventListener("click", beginOnFirstInteraction);
+        document.removeEventListener("keydown", beginOnFirstInteraction);
+        return;
+    }
+    startBackgroundMusic();
+};
+document.addEventListener("click", beginOnFirstInteraction);
+document.addEventListener("keydown", beginOnFirstInteraction);
+
+// Pauses the background track while the wheel is spinning (e.g. so the spin SFX can be heard clearly)
+function pauseBackgroundMusic() {
+    backgroundMusic.pause();
 }
+
+// Resumes the background track once the spin has finished, unless the user has muted it
+function resumeBackgroundMusic() {
+    if (!musicMuted) startBackgroundMusic();
+}
+
+// Mute button handler: toggles background music on/off and swaps the button icon
+function toggleMusicMute() {
+    musicMuted = !musicMuted;
+    backgroundMusic.muted = musicMuted;
+    if (!musicMuted) {
+        startBackgroundMusic();
+    }
+    const btn = document.getElementById("muteBtn");
+    if (btn) btn.textContent = musicMuted ? "🔇" : "🔊";
+}
+
+// Plays a one-off sound effect by name; resets currentTime so rapid repeats restart from the beginning
+function playSfx(name) {
+    if (name === 'spin') {
+        spinSfx.currentTime = 0;
+        spinSfx.play().catch(() => {});
+    } else if (name === 'bust') {
+        failSfx.currentTime = 0;
+        failSfx.play().catch(() => {});
+    }
+}
+
+// Wire up the bottom-left mute button
+const muteBtn = document.getElementById("muteBtn");
+if (muteBtn) muteBtn.addEventListener("click", toggleMusicMute);
 
 // initialize audio setup
 initAudio();
@@ -443,6 +501,16 @@ if (spinBtn) {
     spinBtn.addEventListener("click", spin);
 }
 
+// Let the Enter key trigger a spin, as long as the SPIN button is enabled and the
+// user isn't currently typing a team name (those inputs use Enter to commit the name)
+document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    if (e.target && e.target.tagName === "INPUT") return;
+    if (!spinBtn || spinBtn.disabled) return;
+    e.preventDefault();
+    spinBtn.click();
+});
+
 // Decision control helper
 function setDecisionVisible(show) {
     const el = document.getElementById("decisionControls");
@@ -487,6 +555,9 @@ function spin() {
     playSfx('click');
     playSfx('spin');
 
+    // Duck the background music while the wheel is spinning
+    pauseBackgroundMusic();
+
     // always proceed; spinCount is managed by finishSpin
 
     // reset travel counters for spin-revolution enforcement
@@ -508,6 +579,8 @@ function animate() {
         requestAnimationFrame(animate);
     } else {
         spinning = false;
+        // Wheel has stopped — bring the background music back in
+        resumeBackgroundMusic();
         determineWinner();
     }
 }

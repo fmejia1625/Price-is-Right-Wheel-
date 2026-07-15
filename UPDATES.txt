@@ -1,0 +1,29 @@
+UPDATES SUMMARY
+
+This branch adds audio and a small UX improvement to the wheel game.
+
+AUDIO
+- Added three audio assets: audio/background_music.mp3, audio/wheel_spin.mp3, audio/fail.mp3.
+- Background music now autoplays on page load. If the browser blocks autoplay
+  (common until the user interacts with the page), it falls back to starting
+  on the very first click or keypress anywhere on the page.
+- Background music automatically pauses the moment the wheel starts spinning
+  and resumes once the spin finishes.
+- A spin sound effect (wheel_spin.mp3) plays each time the wheel is spun.
+- A fail sound effect (fail.mp3) plays when a team busts (goes over $1.00).
+
+MUTE BUTTON
+- Added a round mute button fixed to the bottom-left corner of the page.
+- Clicking it toggles the background music on/off and swaps the icon
+  between the speaker (unmuted) and muted-speaker (muted) emoji.
+
+KEYBOARD SUPPORT
+- Pressing Enter now triggers the SPIN button, as long as it's enabled and
+  the user isn't currently typing in one of the team name fields (those
+  still use Enter to commit the typed name).
+
+FILES CHANGED
+- index.html: added the mute button, removed an unused/duplicate audio tag.
+- styles.css: added styling for the new mute button.
+- wheel.js: added background music/SFX playback logic, mute toggle,
+  spin-pause/resume behavior, and the Enter-key spin shortcut.
