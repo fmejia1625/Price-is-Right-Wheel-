@@ -6,9 +6,9 @@ const centerX = canvas.width / 2;
 const centerY = canvas.height / 2;
 
 const teams = [
-    { name: "Team 1", total: null, spins: [], prizes: [], busted: false },
-    { name: "Team 2", total: null, spins: [], prizes: [], busted: false },
-    { name: "Team 3", total: null, spins: [], prizes: [], busted: false }
+    { name: "Team 1", total: null, spins: [], busted: false },
+    { name: "Team 2", total: null, spins: [], busted: false },
+    { name: "Team 3", total: null, spins: [], busted: false }
 ];
 
 // Price Is Right canonical Big Wheel order (clockwise)
@@ -42,7 +42,16 @@ let tieIndices = []; // indices of teams currently in tiebreak
 let tieBreakValues = {}; // map teamIndex -> spin value during tiebreak
 
 // Background music: light looped track
-const backgroundMusic = new Audio('audio/background-music.mp3');
+const backgroundMusic = document.getElementById("backgroundMusic") || new Audio();
+const backgroundMusicCandidates = ["audio/background-music.mp3", "Price_Is_Right_Wheel/audio/background-music.mp3"];
+let backgroundMusicSrcIndex = 0;
+
+function setBackgroundMusicSource(index) {
+    backgroundMusicSrcIndex = Math.max(0, Math.min(index, backgroundMusicCandidates.length - 1));
+    backgroundMusic.src = backgroundMusicCandidates[backgroundMusicSrcIndex];
+}
+
+setBackgroundMusicSource(0);
 backgroundMusic.loop = true;
 backgroundMusic.volume = 0.18;
 let musicStarted = false;
@@ -58,7 +67,13 @@ function initAudio() {
 function startBackgroundMusic() {
     if (musicStarted) return;
     musicStarted = true;
-    backgroundMusic.play().catch(() => {});
+    backgroundMusic.play().catch(() => {
+        // Retry once using alternate relative path for duplicate-folder workspace layouts.
+        if (backgroundMusicSrcIndex < backgroundMusicCandidates.length - 1) {
+            setBackgroundMusicSource(backgroundMusicSrcIndex + 1);
+            backgroundMusic.play().catch(() => {});
+        }
+    });
 }
 
 function playSfx() {
@@ -70,9 +85,7 @@ initAudio();
 
 let spinStartTravel = 0;
 let spinTravel = 0;
-let bonusMode = false;
 const flashDuration = 3600;
-const megaDisplayDuration = 5500;
 const tieBreakDisplayDuration = 5500;
 const turnTransitionDuration = 1600;
 const bustTransitionDuration = 1800;
@@ -88,8 +101,6 @@ function flashResult(msg, color = "#ffd43b", duration = flashDuration) {
 }
 
 // helper to find indices for special slices
-const idx05 = segments.findIndex(s => s.value === 0.05);
-const idx15 = segments.findIndex(s => s.value === 0.15);
 const idx100 = segments.findIndex(s => s.value === 1.00);
 
 function drawWheel() {
@@ -334,8 +345,6 @@ function resetRoundAfterAllBust() {
     teams.forEach(t => {
         t.total = null;
         t.spins = [];
-        t.bonus = 0;
-        t.prizes = [];
         t.busted = false;
     });
     updateTracker();
@@ -359,17 +368,14 @@ function updateTracker() {
     const t0spins = teams[0].spins.map(fmt).join(", ");
     const t1spins = teams[1].spins.map(fmt).join(", ");
     const t2spins = teams[2].spins.map(fmt).join(", ");
-    const p0 = teams[0].prizes && teams[0].prizes.length ? teams[0].prizes.join(", ") : '-';
-    const p1 = teams[1].prizes && teams[1].prizes.length ? teams[1].prizes.join(", ") : '-';
-    const p2 = teams[2].prizes && teams[2].prizes.length ? teams[2].prizes.join(", ") : '-';
     const statusText = (team, spins) => {
         if (team.busted) return `BUST (${spins || '-'})`;
         if (team.total !== null && team.total !== undefined) return `$${team.total.toFixed(2)} (${spins || '-'})`;
         return `- (${spins || '-'})`;
     };
-    document.getElementById("team0Tracker").textContent = `${teams[0].name}: ${statusText(teams[0], t0spins)} ${teams[0].bonus ? `| Bonus $${teams[0].bonus}` : ""} | Prizes: ${p0}`;
-    document.getElementById("team1Tracker").textContent = `${teams[1].name}: ${statusText(teams[1], t1spins)} ${teams[1].bonus ? `| Bonus $${teams[1].bonus}` : ""} | Prizes: ${p1}`;
-    document.getElementById("team2Tracker").textContent = `${teams[2].name}: ${statusText(teams[2], t2spins)} ${teams[2].bonus ? `| Bonus $${teams[2].bonus}` : ""} | Prizes: ${p2}`;
+    document.getElementById("team0Tracker").textContent = `${teams[0].name}: ${statusText(teams[0], t0spins)}`;
+    document.getElementById("team1Tracker").textContent = `${teams[1].name}: ${statusText(teams[1], t1spins)}`;
+    document.getElementById("team2Tracker").textContent = `${teams[2].name}: ${statusText(teams[2], t2spins)}`;
 }
 
 function updateTrackerForTieBreak() {
@@ -489,7 +495,7 @@ function spin() {
     // reset travel counters for spin-revolution enforcement
     spinStartTravel = spinTravel = 0;
 
-    velocity = (spinPower / 400) * 0.84 + Math.random() * 0.08;
+    velocity = (spinPower / 400) * 0.741 + Math.random() * 0.057;
     spinning = true;
     animate();
 }
@@ -528,11 +534,7 @@ function determineWinner() {
 
     const index = Math.floor(normalized / slice);
     const landed = segments[index];
-    if (bonusMode) {
-        finishBonusSpin(landed);
-    } else {
-        finishSpin(landed);
-    }
+    finishSpin(landed);
 }
 
 function finishSpin(result) {
@@ -569,30 +571,19 @@ function finishSpin(result) {
     team.spins.push(result.value);
     document.getElementById("totalScore").textContent = `$${roundTotal.toFixed(2)}`;
 
-    // Award instant extra prizes for landing on the green 5¢ or 15¢ sections
-    if (!bonusMode && !inTieBreak) {
-        if (Math.abs(result.value - 0.05) < 0.001) {
-            team.prizes.push('5¢ Prize');
-            flashResult(`Lucky! ${team.name} landed on 5¢ — instant prize awarded!`, "#00b050", 3000);
-        } else if (Math.abs(result.value - 0.15) < 0.001) {
-            team.prizes.push('15¢ Prize');
-            flashResult(`Nice! ${team.name} landed on 15¢ — a special prize is yours!`, "#00b050", 3000);
-        }
-    }
-
     // Check for exact $1.00
     if (Math.abs(roundTotal - 1.00) < 0.0001) {
-        team.total = 1.00; // set final
-        // award an exceptional prize plus the bonus spin
-        team.prizes.push('Mega Prize');
-        document.getElementById("result").textContent = `Incredible! ${team.name} hit $1.00 — Mega Prize and a Bonus Spin!`;
+        team.total = 1.00;
+        document.getElementById("result").textContent = `Perfect! ${team.name} hit $1.00!`;
         document.getElementById("result").style.color = "#ffd43b";
         confetti({ particleCount: 600, spread: 220 });
-        playSfx('mega');
-        playSfx('applause');
         spinCount = 1;
-        // award bonus spin after a longer pause for readability
-        setTimeout(() => beginBonusSpin(team), megaDisplayDuration);
+        updateTracker();
+        setDecisionVisible(false);
+        setTimeout(() => {
+            if (currentTeamIndex === teams.length - 1) determineMatchWinner();
+            else advanceTurn();
+        }, turnTransitionDuration);
         return;
     }
 
@@ -700,51 +691,6 @@ function beginTieBreak(indices) {
     }, tieBreakDisplayDuration);
 }
 
-function beginBonusSpin(team) {
-    // Bonus spin: reset wheel to 5c position and allow one spin
-    bonusMode = true;
-    document.getElementById("result").textContent = `${team.name} - Bonus Spin!`;
-    document.getElementById("result").style.color = "#ffd43b";
-    // position wheel so that $0.05 sits at the pointer
-    const slice = (Math.PI * 2) / segments.length;
-    // compute angle so that idx05 is at pointer
-    if (idx05 >= 0) {
-        angle = Math.PI * 1.5 - (idx05 * slice + slice / 2);
-    }
-    // prepare for a fresh spin
-    spinStartTravel = spinTravel = 0;
-}
-
-function finishBonusSpin(result) {
-    const team = teams[currentTeamIndex];
-    // award based on result slice
-    let award = 0;
-    if (result.value === 0.05 || result.value === 0.15) {
-        award = 5000;
-    } else if (result.value === 1.00) {
-        award = 10000;
-    }
-    if (award > 0) {
-        document.getElementById("result").textContent = `${team.name} wins $${award.toLocaleString()} on the Bonus Spin!`;
-        confetti({ particleCount: 300, spread: 140 });
-        playSfx('bonus');
-        playSfx('applause');
-    } else {
-        document.getElementById("result").textContent = `${team.name} wins nothing on the Bonus Spin.`;
-        playSfx('bonus');
-    }
-    document.getElementById("result").style.color = "#ffd43b";
-    bonusMode = false;
-    // record bonus award on team for tracking
-    team.bonus = (team.bonus || 0) + award;
-    updateTracker();
-    // continue to next action: the team has finished, advance or decide match
-    setTimeout(() => {
-        if (currentTeamIndex === teams.length - 1) determineMatchWinner();
-        else advanceTurn();
-    }, turnTransitionDuration);
-}
-
 function determineMatchWinner() {
     const validTeams = teams.filter(t => !t.busted && t.total !== null && t.total <= 1.0);
     const bustedTeams = teams.filter(t => t.busted);
@@ -795,7 +741,7 @@ function determineMatchWinner() {
 
 document.getElementById("resetBtn").addEventListener("click", () => {
     playSfx('click');
-    teams.forEach(t => { t.total = null; t.spins = []; t.bonus = 0; t.prizes = []; t.busted = false; });
+    teams.forEach(t => { t.total = null; t.spins = []; t.busted = false; });
     beginTurn(0);
     document.getElementById("spinNumber").textContent = "1";
     document.getElementById("result").textContent = "Game reset. Team 1, spin first.";
