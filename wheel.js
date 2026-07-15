@@ -498,7 +498,7 @@ function spin() {
     // reset travel counters for spin-revolution enforcement
     spinStartTravel = spinTravel = 0;
 
-    velocity = (spinPower / 400) * 0.741 + Math.random() * 0.057;
+    velocity = (spinPower / 400) * 0.704 + Math.random() * 0.054;
     spinning = true;
     animate();
 }
