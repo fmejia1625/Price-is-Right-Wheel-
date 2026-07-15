@@ -54,7 +54,7 @@ function setBackgroundMusicSource(index) {
 setBackgroundMusicSource(0);
 backgroundMusic.loop = true;
 backgroundMusic.volume = 0.18;
-let musicPlaying = false; // true only once playback is actually underway (not just attempted)
+let musicStarted = false;
 let musicMuted = false; // tracks the mute button state
 
 // Sound effects: wheel spin whir and the "bust" fail sound
@@ -535,9 +535,6 @@ function spin() {
     playSfx('click');
     playSfx('spin');
 
-    // Duck the background music while the wheel is spinning
-    pauseBackgroundMusic();
-
     // always proceed; spinCount is managed by finishSpin
 
     // reset travel counters for spin-revolution enforcement
@@ -559,8 +556,6 @@ function animate() {
         requestAnimationFrame(animate);
     } else {
         spinning = false;
-        // Wheel has stopped — bring the background music back in
-        resumeBackgroundMusic();
         determineWinner();
     }
 }
